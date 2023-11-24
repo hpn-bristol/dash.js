@@ -38,7 +38,7 @@ import Utils from '../core/Utils';
 import {
     PlayList,
     PlayListTrace
-} from '../streaming/vo/metrics/PlayList';
+} from '../streaming/vo/metrics/PlayList'; 
 
 /**
  * @module DashMetrics

@@ -33,7 +33,9 @@ angular.module('DashIFTestVectorsService', ['ngResource']).factory('dashifTestVe
     });
 });
 
-app.controller('DashController', ['$scope', '$window', 'sources', 'contributors', 'dashifTestVectors', function ($scope, $window, sources, contributors, dashifTestVectors) {
+app.controller('DashController', ['$scope', '$window', 'sources', 'contributors', 'dashifTestVectors', function ($scope, $window, $http, sources, contributors, dashifTestVectors) {
+    const xhr = new XMLHttpRequest();
+
     $scope.selectedItem = {
         url: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
     };
@@ -2050,6 +2052,7 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
     function updateMetrics(type) {
         var dashMetrics = $scope.player.getDashMetrics();
         var dashAdapter = $scope.player.getDashAdapter();
+        // xhr.open("POST", "http://10.9.10.45:5000/arraysum");
 
         if (dashMetrics && $scope.currentStreamInfo) {
             var period = dashAdapter.getPeriodById($scope.currentStreamInfo.id);
@@ -2057,15 +2060,15 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
 
             var maxIndex = dashAdapter.getMaxIndexForBufferType(type, periodIdx);
             var repSwitch = dashMetrics.getCurrentRepresentationSwitch(type, true);
-            var bufferLevel = dashMetrics.getCurrentBufferLevel(type, true);
+            var bufferLevel = dashMetrics.getCurrentBufferLevel(type, true);            
             var index = $scope.player.getQualityFor(type);
-
             var bitrate = repSwitch ? Math.round(dashAdapter.getBandwidthForRepresentation(repSwitch.to, periodIdx) / 1000) : NaN;
             var droppedFramesMetrics = dashMetrics.getCurrentDroppedFrames();
             var droppedFPS = droppedFramesMetrics ? droppedFramesMetrics.droppedFrames : 0;
             var liveLatency = 0;
             var playbackRate = 1.00
             var mtp = $scope.player.getAverageThroughput(type);
+
             if ($scope.isDynamic) {
                 liveLatency = $scope.player.getCurrentLiveLatency();
                 playbackRate = parseFloat($scope.player.getPlaybackRate().toFixed(2));
@@ -2084,6 +2087,26 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
                 $scope[type + 'Ratio'] = httpMetrics.ratio[type].low.toFixed(2) + ' | ' + httpMetrics.ratio[type].average.toFixed(2) + ' | ' + httpMetrics.ratio[type].high.toFixed(2);
                 $scope[type + 'Etp'] = (httpMetrics.etp[type] / 1000).toFixed(3);
                 $scope[type + 'Mtp'] = (mtp / 1000).toFixed(3);
+
+                // This variable contains the data 
+                // you want to send 
+                var data = JSON.stringify({
+                    'buffer': bufferLevel,
+                    'index': index,
+                    'bitrate': bitrate,
+                    'droppedFPS': droppedFPS,
+                    'liveLatency': liveLatency,
+                    'playbackRate': playbackRate,
+                    'download': httpMetrics.download[type].average.toFixed(2),
+                    'latency': httpMetrics.latency[type].average.toFixed(2),
+                    'ratio': httpMetrics.ratio[type].average.toFixed(2),
+                    'etp': (httpMetrics.etp[type] / 1000).toFixed(3),
+                    'mtp': (mtp / 1000).toFixed(3)
+                });
+                xhr.open("POST", "http://10.9.10.45:5000/arraysum");
+                xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+                xhr.send(data);
+
             }
 
             if ($scope.chartCount % 2 === 0) {
