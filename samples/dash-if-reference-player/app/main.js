@@ -33,9 +33,7 @@ angular.module('DashIFTestVectorsService', ['ngResource']).factory('dashifTestVe
     });
 });
 
-app.controller('DashController', ['$scope', '$window', 'sources', 'contributors', 'dashifTestVectors', function ($scope, $window, $http, sources, contributors, dashifTestVectors) {
-    const xhr = new XMLHttpRequest();
-
+app.controller('DashController', ['$scope', '$window', 'sources', 'contributors', 'dashifTestVectors', function ($scope, $window, sources, contributors, dashifTestVectors) {
     $scope.selectedItem = {
         url: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
     };
@@ -2052,7 +2050,6 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
     function updateMetrics(type) {
         var dashMetrics = $scope.player.getDashMetrics();
         var dashAdapter = $scope.player.getDashAdapter();
-        // xhr.open("POST", "http://10.9.10.45:5000/arraysum");
 
         if (dashMetrics && $scope.currentStreamInfo) {
             var period = dashAdapter.getPeriodById($scope.currentStreamInfo.id);
@@ -2088,27 +2085,26 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
                 $scope[type + 'Etp'] = (httpMetrics.etp[type] / 1000).toFixed(3);
                 $scope[type + 'Mtp'] = (mtp / 1000).toFixed(3);
                 
-                if (type=='video'){ //extract video qos metrics
-                    // This variable contains the data 
-                    // you want to send 
-                    var data = JSON.stringify({
-                    'buffer': bufferLevel,
-                    'index': index,
-                    'bitrate': bitrate,
-                    'droppedFPS': droppedFPS,
-                    'liveLatency': liveLatency,
-                    'playbackRate': playbackRate,
-                    'download': httpMetrics.download[type].average.toFixed(2),
-                    'latency': httpMetrics.latency[type].average.toFixed(2),
-                    'ratio': httpMetrics.ratio[type].average.toFixed(2),
-                    'etp': (httpMetrics.etp[type] / 1000).toFixed(3),
-                    'mtp': (mtp / 1000).toFixed(3)
-                    });
-                    xhr.open("POST", "http://10.9.10.45:5000/qos_update");
-                    xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
-                    xhr.send(data);
-                }
-
+            //     if (type=='video'){ //extract video qos metrics
+            //         // This variable contains the data 
+            //         // you want to send 
+            //         var data = JSON.stringify({
+            //         'buffer': bufferLevel,
+            //         'index': index,
+            //         'bitrate': bitrate,
+            //         'droppedFPS': droppedFPS,
+            //         'liveLatency': liveLatency,
+            //         'playbackRate': playbackRate,
+            //         'download': httpMetrics.download[type].average.toFixed(2),
+            //         'latency': httpMetrics.latency[type].average.toFixed(2),
+            //         'ratio': httpMetrics.ratio[type].average.toFixed(2),
+            //         'etp': (httpMetrics.etp[type] / 1000).toFixed(3),
+            //         'mtp': (mtp / 1000).toFixed(3)
+            //         });
+            //         xhr.open("POST", "http://10.9.10.45:5000/qos_update");
+            //         xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+            //         xhr.send(data);
+            //     }
             }
 
             if ($scope.chartCount % 2 === 0) {
