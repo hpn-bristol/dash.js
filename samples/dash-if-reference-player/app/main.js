@@ -2087,10 +2087,11 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
                 $scope[type + 'Ratio'] = httpMetrics.ratio[type].low.toFixed(2) + ' | ' + httpMetrics.ratio[type].average.toFixed(2) + ' | ' + httpMetrics.ratio[type].high.toFixed(2);
                 $scope[type + 'Etp'] = (httpMetrics.etp[type] / 1000).toFixed(3);
                 $scope[type + 'Mtp'] = (mtp / 1000).toFixed(3);
-
-                // This variable contains the data 
-                // you want to send 
-                var data = JSON.stringify({
+                
+                if (type=='video'){ //extract video qos metrics
+                    // This variable contains the data 
+                    // you want to send 
+                    var data = JSON.stringify({
                     'buffer': bufferLevel,
                     'index': index,
                     'bitrate': bitrate,
@@ -2102,10 +2103,11 @@ app.controller('DashController', ['$scope', '$window', 'sources', 'contributors'
                     'ratio': httpMetrics.ratio[type].average.toFixed(2),
                     'etp': (httpMetrics.etp[type] / 1000).toFixed(3),
                     'mtp': (mtp / 1000).toFixed(3)
-                });
-                xhr.open("POST", "http://10.9.10.45:5000/arraysum");
-                xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
-                xhr.send(data);
+                    });
+                    xhr.open("POST", "http://10.9.10.45:5000/qos_update");
+                    xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+                    xhr.send(data);
+                }
 
             }
 
