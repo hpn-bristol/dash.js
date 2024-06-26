@@ -40,7 +40,7 @@ import Utils from '../../core/Utils.js';
 function CatchupController() {
     const context = this.context;
     const eventBus = EventBus(context).getInstance();
-
+    const repoter = new XMLHttpRequest();  // app info feedback
     let instance,
         isCatchupSeekInProgress,
         isSafari,
@@ -205,7 +205,19 @@ function CatchupController() {
             const liveCatchupPlaybackRates = mediaPlayerModel.getCatchupPlaybackRates();
             const bufferLevel = playbackController.getBufferLevel();
             const deltaLatency = _getLatencyDrift();
-
+            // application information feedback
+            // console.log('fd_liveLatency: ', playbackController.getCurrentLiveLatency())
+            // console.log('fd_bufferLevel: ', bufferLevel)
+            // console.log('fd_playBackRate: ', currentPlaybackRate)
+            var data = JSON.stringify({
+                'liveLatency': playbackController.getCurrentLiveLatency(),
+                'bufferLevel': bufferLevel,
+                'playBackRate': currentPlaybackRate,
+                'stall': playbackController.getPlaybackStalled()
+                });
+            repoter.open("POST", "http://10.9.10.45:5001/appInfo");
+            repoter.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+            repoter.send(data);
             // we reached the maxDrift. Do a seek
             const maxDrift = mediaPlayerModel.getCatchupMaxDrift();
             if (!isNaN(maxDrift) && maxDrift > 0 &&

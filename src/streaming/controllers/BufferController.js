@@ -62,7 +62,7 @@ function BufferController(config) {
     const streamInfo = config.streamInfo;
     const type = config.type;
     const settings = config.settings;
-
+    // const repoter = new XMLHttpRequest();  // app info feedback
     let instance,
         logger,
         isBufferingCompleted,
@@ -834,6 +834,20 @@ function BufferController(config) {
             bufferLevel = Math.max(getBufferLength(referenceTime, tolerance), 0);
             _triggerEvent(Events.BUFFER_LEVEL_UPDATED, { mediaType: type, bufferLevel: bufferLevel });
             checkIfSufficientBuffer();
+            // // application information feedback
+            // const currentRepresentation = representationController.getCurrentRepresentation();
+            // if(currentRepresentation.memiType == "video/mp4"){  // we care only video bitrate
+            //     bitrate = currentRepresentation.bandwidth;
+            //     var data = JSON.stringify({
+            //         'liveLatency': playbackController.getCurrentLiveLatency(),
+            //         'bufferLevel': playbackController.getBufferLevel(),
+            //         'bitrate': bitrate,
+            //         'stall': playbackController.getPlaybackStalled()
+            //         });
+            //     repoter.open("POST", "http://10.9.10.45:5001/appInfo");
+            //     repoter.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+            //     repoter.send(data);
+            // }
         }
     }
 
