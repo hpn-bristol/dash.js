@@ -28,20 +28,8 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-import FactoryMaker from '../../core/FactoryMaker';
-import {THUMBNAILS_SCHEME_ID_URIS} from '../thumbnail/ThumbnailTracks';
-import Constants from '../constants/Constants';
-
-const codecCompatibilityTable = [
-    {
-        'codec': 'avc1',
-        'compatibleCodecs': ['avc3']
-    },
-    {
-        'codec': 'avc3',
-        'compatibleCodecs': ['avc1']
-    }
-];
+import FactoryMaker from '../../core/FactoryMaker.js';
+import Constants from '../constants/Constants.js';
 
 export function supportsMediaSource() {
     let hasManagedMediaSource = ('ManagedMediaSource' in window)
@@ -69,6 +57,13 @@ function Capabilities() {
         if (config.settings) {
             settings = config.settings;
         }
+    }
+
+    function isProtectionCompatible(previousStreamInfo, newStreamInfo) {
+        if (!newStreamInfo) {
+            return true;
+        }
+        return !(!previousStreamInfo.isEncrypted && newStreamInfo.isEncrypted);
     }
 
     /**
@@ -116,7 +111,6 @@ function Capabilities() {
      * @private
      */
     function _canUseMediaCapabilitiesApi(config, type) {
-
         return settings.get().streaming.capabilities.useMediaCapabilitiesApi && navigator.mediaCapabilities && navigator.mediaCapabilities.decodingInfo && ((config.codec && type === Constants.AUDIO) || (type === Constants.VIDEO && config.codec && config.width && config.height && config.bitrate && config.framerate));
     }
 
@@ -165,7 +159,7 @@ function Capabilities() {
     function _checkCodecWithMediaCapabilities(config, type) {
         return new Promise((resolve) => {
 
-            if (!config || !config.codec) {
+            if (!config || !config.codec || (config.isSupported === false)) {
                 resolve(false);
                 return;
             }
@@ -180,6 +174,9 @@ function Capabilities() {
             configuration[type].height = config.height;
             configuration[type].bitrate = parseInt(config.bitrate);
             configuration[type].framerate = parseFloat(config.framerate);
+            if (config.hdrMetadataType) { configuration[type].hdrMetadataType = config.hdrMetadataType; }
+            if (config.colorGamut) { configuration[type].colorGamut = config.colorGamut; }
+            if (config.transferFunction) { configuration[type].transferFunction = config.transferFunction; }
 
             navigator.mediaCapabilities.decodingInfo(configuration)
                 .then((result) => {
@@ -192,48 +189,60 @@ function Capabilities() {
     }
 
     /**
+     * Add additional descriptors to list of descriptors,
+     * avoid duplicated entries
+     * @param {array} props
+     * @param {array} newProps
+     * @return {array}
+     * @private
+     */
+    function _addProperties(props, newProps) {
+        props = props.filter(p => {
+            return !(p.schemeIdUri && (newProps.some(np => np.schemeIdUri === p.schemeIdUri)));
+        });
+        props.push(...newProps);
+
+        return props;
+    }
+
+    /**
      * Check if a specific EssentialProperty is supported
-     * @param {object} ep
+     * @param {DescriptorType} ep
      * @return {boolean}
      */
     function supportsEssentialProperty(ep) {
+        let supportedEssentialProps = settings.get().streaming.capabilities.supportedEssentialProperties;
+
+        // we already took care of these descriptors with the codecs check
+        // let's bypass them here
+        if (settings.get().streaming.capabilities.useMediaCapabilitiesApi && settings.get().streaming.capabilities.filterVideoColorimetryEssentialProperties) {
+            supportedEssentialProps = _addProperties(supportedEssentialProps,
+                [
+                    { schemeIdUri: Constants.COLOUR_PRIMARIES_SCHEME_ID_URI },
+                    { schemeIdUri: Constants.MATRIX_COEFFICIENTS_SCHEME_ID_URI },
+                    { schemeIdUri: Constants.TRANSFER_CHARACTERISTICS_SCHEME_ID_URI }
+                ]
+            );
+        }
+        if (settings.get().streaming.capabilities.useMediaCapabilitiesApi && settings.get().streaming.capabilities.filterHDRMetadataFormatEssentialProperties) {
+            supportedEssentialProps = _addProperties(supportedEssentialProps, [{ schemeIdUri: Constants.HDR_METADATA_FORMAT_SCHEME_ID_URI }]);
+        }
+
         try {
-            return THUMBNAILS_SCHEME_ID_URIS.indexOf(ep.schemeIdUri) !== -1;
+            return ep.inArray(supportedEssentialProps);
         } catch (e) {
             return true;
         }
     }
 
-    /**
-     * Check if the root of the old codec is the same as the new one, or if it's declared as compatible in the compat table
-     * @param {string} codec1
-     * @param {string} codec2
-     * @return {boolean}
-     */
-    function codecRootCompatibleWithCodec(codec1, codec2) {
-        const codecRoot = codec1.split('.')[0];
-        const rootCompatible = codec2.indexOf(codecRoot) === 0;
-        let compatTableCodec;
-        for (let i = 0; i < codecCompatibilityTable.length; i++) {
-            if (codecCompatibilityTable[i].codec === codecRoot) {
-                compatTableCodec = codecCompatibilityTable[i];
-                break;
-            }
-        }
-        if (compatTableCodec) {
-            return rootCompatible || compatTableCodec.compatibleCodecs.some((compatibleCodec) => codec2.indexOf(compatibleCodec) === 0);
-        }
-        return rootCompatible;
-    }
-
     instance = {
+        isProtectionCompatible,
         setConfig,
-        supportsMediaSource,
-        supportsEncryptedMedia,
-        supportsCodec,
         setEncryptedMediaSupported,
+        supportsCodec,
+        supportsEncryptedMedia,
         supportsEssentialProperty,
-        codecRootCompatibleWithCodec
+        supportsMediaSource,
     };
 
     setup();

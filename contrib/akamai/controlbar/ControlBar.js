@@ -65,6 +65,7 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
         seekbarPlay,
         seekbarBuffer,
         muteBtn,
+        nativeTextTracks,
         volumebar,
         fullscreenBtn,
         timeDisplay,
@@ -177,7 +178,7 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
     };
 
     var _onPlayStart = function (/*e*/) {
-        setTime(displayUTCTimeCodes ? self.player.timeAsUTC() : self.player.time());
+        setTime(displayUTCTimeCodes ? self.player.timeAsUtc() : self.player.timeInDvrWindow());
         updateDuration();
         togglePlayPauseBtnState();
         if (seekbarBufferInterval) {
@@ -188,13 +189,13 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
     var _onPlayTimeUpdate = function (/*e*/) {
         updateDuration();
         if (!seeking) {
-            setTime(displayUTCTimeCodes ? player.timeAsUTC() : player.time());
+            setTime(displayUTCTimeCodes ? player.timeAsUtc() : player.timeInDvrWindow());
             if (seekbarPlay) {
-                seekbarPlay.style.width = (player.time() / player.duration() * 100) + '%';
+                seekbarPlay.style.width = Math.max((player.timeInDvrWindow() / player.duration() * 100), 0) + '%';
             }
 
             if (seekbar.getAttribute('type') === 'range') {
-                seekbar.value = player.time();
+                seekbar.value = player.timeInDvrWindow();
             }
 
         }
@@ -383,7 +384,7 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
             return;
         }
         if (self.player.isDynamic() && self.player.duration()) {
-            var liveDelay = self.player.duration() - value;
+            var liveDelay = Math.max(self.player.duration() - value, 0);
             var targetLiveDelay = self.player.getTargetLiveDelay();
 
             if (liveDelay < targetLiveDelay + liveThresholdSecs) {
@@ -400,7 +401,7 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
     var updateDuration = function () {
         var duration = self.player.duration();
         if (duration !== parseFloat(seekbar.max)) { //check if duration changes for live streams..
-            setDuration(displayUTCTimeCodes ? self.player.durationAsUTC() : duration);
+            setDuration(displayUTCTimeCodes ? self.player.getDvrWindow().endAsUtc : duration);
             seekbar.max = duration;
         }
     };
@@ -528,13 +529,13 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
             destroyMenu(bitrateListMenu, bitrateListBtn, menuHandlersList.bitrate);
             bitrateListMenu = null;
             var availableBitrates = { menuType: 'bitrate' };
-            availableBitrates.audio = self.player.getBitrateInfoListFor && self.player.getBitrateInfoListFor('audio') || [];
-            availableBitrates.video = self.player.getBitrateInfoListFor && self.player.getBitrateInfoListFor('video') || [];
-            availableBitrates.images = self.player.getBitrateInfoListFor && self.player.getBitrateInfoListFor('image') || [];
+            availableBitrates.audio = self.player.getRepresentationsByType && self.player.getRepresentationsByType('audio') || [];
+            availableBitrates.video = self.player.getRepresentationsByType && self.player.getRepresentationsByType('video') || [];
+            availableBitrates.images = self.player.getRepresentationsByType && self.player.getRepresentationsByType('image') || [];
 
             if (availableBitrates.audio.length >= 1 || availableBitrates.video.length >= 1 || availableBitrates.images.length >= 1) {
                 contentFunc = function (element, index) {
-                    var result = isNaN(index) ? ' Auto Switch' : Math.floor(element.bitrate / 1000) + ' kbps';
+                    var result = isNaN(index) ? ' Auto Switch' : Math.floor(element.bitrateInKbit) + ' kbps';
                     result += element && element.width && element.height ? ' (' + element.width + 'x' + element.height + ')' : '';
                     return result;
                 };
@@ -575,7 +576,7 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
                     }
 
                     if (element.roles[0]) {
-                        info += '- Role: ' + element.roles[0] + ' ';
+                        info += '- Role: ' + element.roles[0].value + ' ';
                     }
 
                     if (element.codec) {
@@ -595,6 +596,35 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
         }
     };
 
+    // Match up the current dashjs text tracks against native video element tracks by ensuring they have matching properties
+    var _matchTrackWithNativeTrack = function (track, nativeTrack) {
+        let label = track.id !== undefined ? track.id.toString() : track.lang;
+
+        return !!(
+            (track.kind === nativeTrack.kind) &&
+            (track.lang === nativeTrack.language) &&
+            (track.isTTML === nativeTrack.isTTML) &&
+            (track.isEmbedded === nativeTrack.isEmbedded) &&
+            (label === nativeTrack.label)
+        );
+    }
+
+    // Compare track information against native video element tracks to get the current track mode
+    var _getNativeVideoTrackMode = function (track) {
+        const nativeTracks = video.textTracks;
+        let trackMode;
+        for (let i = 0; i < nativeTracks.length; i++) {
+            const nativeTrack = nativeTracks[i];
+            if (_matchTrackWithNativeTrack(track, nativeTrack)) {
+                trackMode = nativeTrack.mode;
+                break;
+            }
+        }
+        ;
+
+        return (trackMode === undefined) ? 'showing' : trackMode;
+    };
+
     var createCaptionSwitchMenu = function (streamId) {
         // Subtitles/Captions Menu //XXX we need to add two layers for captions & subtitles if present.
         var activeStreamInfo = player.getActiveStream().getStreamInfo();
@@ -607,15 +637,24 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
             var tracks = textTrackList[streamId] || [];
             var contentFunc = function (element, index) {
                 if (isNaN(index)) {
-                    return 'OFF';
+                    return {
+                        mode: 'showing',
+                        text: 'OFF'
+                    };
                 }
 
                 var label = getLabelForLocale(element.labels);
+                var trackText;
                 if (label) {
-                    return label + ' : ' + element.type;
+                    trackText = label + ' : ' + element.type;
+                } else {
+                    trackText = element.lang + ' : ' + element.kind;
                 }
 
-                return element.lang + ' : ' + element.kind;
+                return {
+                    mode: _getNativeVideoTrackMode(element),
+                    text: trackText
+                }
             };
             captionMenu = createMenu({ menuType: 'caption', arr: tracks }, contentFunc);
 
@@ -630,6 +669,11 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
 
     };
 
+    var _onTracksChanged = function () {
+        var activeStreamInfo = player.getActiveStream().getStreamInfo();
+        createCaptionSwitchMenu(activeStreamInfo.id);
+    }
+
     var _onTracksAdded = function (e) {
         // Subtitles/Captions Menu //XXX we need to add two layers for captions & subtitles if present.
         if (!textTrackList[e.streamId]) {
@@ -637,12 +681,16 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
         }
 
         textTrackList[e.streamId] = textTrackList[e.streamId].concat(e.tracks);
+
+        nativeTextTracks = video.textTracks;
+        nativeTextTracks.addEventListener('change', _onTracksChanged);
+
         createCaptionSwitchMenu(e.streamId);
     };
 
     var _onBufferLevelUpdated = function () {
         if (seekbarBuffer) {
-            seekbarBuffer.style.width = ((player.time() + getBufferLevel()) / player.duration() * 100) + '%';
+            seekbarBuffer.style.width = ((player.timeInDvrWindow() + getBufferLevel()) / player.duration() * 100) + '%';
         }
     };
 
@@ -783,7 +831,14 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
             item.mediaType = mediaType;
             item.name = name;
             item.selected = false;
-            item.textContent = arr[i];
+            if (isObject(arr[i])) {
+                // text tracks need extra properties
+                item.mode = arr[i].mode;
+                item.textContent = arr[i].text;
+            } else {
+                // Other tracks will just have their text
+                item.textContent = arr[i];
+            }
 
             item.onmouseover = function (/*e*/) {
                 if (this.selected !== true) {
@@ -802,7 +857,13 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
                 el = menu.querySelector('.' + mediaType + '-menu-content');
             }
 
-            el.appendChild(item);
+            if (mediaType === 'caption') {
+                if (item.mode !== 'disabled') {
+                    el.appendChild(item);
+                }
+            } else {
+                el.appendChild(item);
+            }
         }
 
         return menu;
@@ -852,14 +913,14 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
                             if (item.index > 0) {
                                 cfg.streaming.abr.autoSwitchBitrate[item.mediaType] = false;
                                 self.player.updateSettings(cfg);
-                                self.player.setQualityFor(item.mediaType, item.index - 1, forceQuality);
+                                self.player.setRepresentationForTypeByIndex(item.mediaType, item.index - 1, forceQuality);
                             } else {
                                 cfg.streaming.abr.autoSwitchBitrate[item.mediaType] = true;
                                 self.player.updateSettings(cfg);
                             }
                             break;
                         case 'image-bitrate-list':
-                            player.setQualityFor(item.mediaType, item.index);
+                            player.setRepresentationForTypeByIndex(item.mediaType, item.index);
                             break;
                         case 'caption-list':
                             self.player.setTextTrack(item.index - 1);
@@ -953,6 +1014,14 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
     };
 
     //************************************************************************************
+    //Utilities
+    //************************************************************************************
+
+    var isObject = function (obj) {
+        return typeof obj === 'object' && !Array.isArray(obj) && obj !== null;
+    }
+
+    //************************************************************************************
     // PUBLIC API
     //************************************************************************************
 
@@ -1035,6 +1104,7 @@ var ControlBar = function (dashjsMediaPlayer, displayUTCTimeCodes) {
             }
             if (menuHandlersList.caption) {
                 captionBtn.removeEventListener('click', menuHandlersList.caption);
+                nativeTextTracks.removeEventListener('change', _onTracksChanged);
             }
             if (captionMenu) {
                 this.removeMenu(captionMenu, captionBtn);

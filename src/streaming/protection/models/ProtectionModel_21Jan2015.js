@@ -37,13 +37,14 @@
  * @implements ProtectionModel
  * @class
  */
-import ProtectionKeyController from '../controllers/ProtectionKeyController';
-import NeedKey from '../vo/NeedKey';
-import ProtectionErrors from '../errors/ProtectionErrors';
-import DashJSError from '../../vo/DashJSError';
-import KeyMessage from '../vo/KeyMessage';
-import KeySystemAccess from '../vo/KeySystemAccess';
-import ProtectionConstants from '../../constants/ProtectionConstants';
+import ProtectionKeyController from '../controllers/ProtectionKeyController.js';
+import NeedKey from '../vo/NeedKey.js';
+import ProtectionErrors from '../errors/ProtectionErrors.js';
+import DashJSError from '../../vo/DashJSError.js';
+import KeyMessage from '../vo/KeyMessage.js';
+import KeySystemAccess from '../vo/KeySystemAccess.js';
+import ProtectionConstants from '../../constants/ProtectionConstants.js';
+import FactoryMaker from '../../../core/FactoryMaker.js';
 
 const SYSTEM_STRING_PRIORITY = {};
 SYSTEM_STRING_PRIORITY[ProtectionConstants.PLAYREADY_KEYSTEM_STRING] = [ProtectionConstants.PLAYREADY_KEYSTEM_STRING, ProtectionConstants.PLAYREADY_RECOMMENDATION_KEYSTEM_STRING];
@@ -259,8 +260,9 @@ function ProtectionModel_21Jan2015(config) {
     }
 
     function setMediaElement(mediaElement) {
-        if (videoElement === mediaElement)
+        if (videoElement === mediaElement) {
             return;
+        }
 
         // Replacing the previous element
         if (videoElement) {
@@ -578,4 +580,4 @@ function ProtectionModel_21Jan2015(config) {
 }
 
 ProtectionModel_21Jan2015.__dashjs_factory_name = 'ProtectionModel_21Jan2015';
-export default dashjs.FactoryMaker.getClassFactory(ProtectionModel_21Jan2015); /* jshint ignore:line */
+export default FactoryMaker.getClassFactory(ProtectionModel_21Jan2015);

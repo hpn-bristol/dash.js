@@ -38,13 +38,14 @@
  * @class
  */
 
-import ProtectionKeyController from '../controllers/ProtectionKeyController';
-import NeedKey from '../vo/NeedKey';
-import DashJSError from '../../vo/DashJSError';
-import ProtectionErrors from '../errors/ProtectionErrors';
-import KeyMessage from '../vo/KeyMessage';
-import KeySystemConfiguration from '../vo/KeySystemConfiguration';
-import KeySystemAccess from '../vo/KeySystemAccess';
+import ProtectionKeyController from '../controllers/ProtectionKeyController.js';
+import NeedKey from '../vo/NeedKey.js';
+import DashJSError from '../../vo/DashJSError.js';
+import ProtectionErrors from '../errors/ProtectionErrors.js';
+import KeyMessage from '../vo/KeyMessage.js';
+import KeySystemConfiguration from '../vo/KeySystemConfiguration.js';
+import KeySystemAccess from '../vo/KeySystemAccess.js';
+import FactoryMaker from '../../../core/FactoryMaker.js';
 
 function ProtectionModel_3Feb2014(config) {
 
@@ -182,8 +183,9 @@ function ProtectionModel_3Feb2014(config) {
     }
 
     function setMediaElement(mediaElement) {
-        if (videoElement === mediaElement)
+        if (videoElement === mediaElement) {
             return;
+        }
 
         // Replacing the previous element
         if (videoElement) {
@@ -400,4 +402,4 @@ function ProtectionModel_3Feb2014(config) {
 }
 
 ProtectionModel_3Feb2014.__dashjs_factory_name = 'ProtectionModel_3Feb2014';
-export default dashjs.FactoryMaker.getClassFactory(ProtectionModel_3Feb2014); /* jshint ignore:line */
+export default FactoryMaker.getClassFactory(ProtectionModel_3Feb2014);

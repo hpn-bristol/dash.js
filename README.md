@@ -184,7 +184,7 @@ When it is all done, it should look similar to this:
     * ```npm run doc```
     
 ### Troubleshooting
-* In case the build process is failing make sure to use an up-to-date node.js version. The build process was successfully tested with node.js version 14.16.1.
+* In case the build process is failing make sure to use an up-to-date node.js version. The build process was successfully tested with node.js version 20.10.0.
 
 ### License
 dash.js is released under [BSD license](https://github.com/Dash-Industry-Forum/dash.js/blob/development/LICENSE.md)
@@ -192,3 +192,5 @@ dash.js is released under [BSD license](https://github.com/Dash-Industry-Forum/d
 ### Tested With
 
 [<img src="https://cloud.githubusercontent.com/assets/7864462/12837037/452a17c6-cb73-11e5-9f39-fc96893bc9bf.png" alt="Browser Stack Logo" width="300">](https://www.browserstack.com/)
+&nbsp;&nbsp;
+[<img src="https://www.lambdatest.com/support/img/logo.svg" alt="Lambdatest Logo" width="300">](https://www.lambdatest.com/)

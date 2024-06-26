@@ -28,13 +28,13 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-import ProtectionController from './controllers/ProtectionController';
-import ProtectionKeyController from './controllers/ProtectionKeyController';
-import ProtectionEvents from './ProtectionEvents';
-import ProtectionErrors from './errors/ProtectionErrors';
-import ProtectionModel_21Jan2015 from './models/ProtectionModel_21Jan2015';
-import ProtectionModel_3Feb2014 from './models/ProtectionModel_3Feb2014';
-import ProtectionModel_01b from './models/ProtectionModel_01b';
+import ProtectionController from './controllers/ProtectionController.js';
+import ProtectionKeyController from './controllers/ProtectionKeyController.js';
+import ProtectionEvents from './ProtectionEvents.js';
+import ProtectionErrors from './errors/ProtectionErrors.js';
+import ProtectionModel_21Jan2015 from './models/ProtectionModel_21Jan2015.js';
+import ProtectionModel_3Feb2014 from './models/ProtectionModel_3Feb2014.js';
+import ProtectionModel_01b from './models/ProtectionModel_01b.js';
 
 const APIS_ProtectionModel_01b = [
     // Un-prefixed as per spec
@@ -200,8 +200,8 @@ function Protection() {
 }
 
 Protection.__dashjs_factory_name = 'Protection';
-const factory = dashjs.FactoryMaker.getClassFactory(Protection); /* jshint ignore:line */
+const factory = dashjs.FactoryMaker.getClassFactory(Protection); 
 factory.events = ProtectionEvents;
 factory.errors = ProtectionErrors;
-dashjs.FactoryMaker.updateClassFactory(Protection.__dashjs_factory_name, factory); /* jshint ignore:line */
+dashjs.FactoryMaker.updateClassFactory(Protection.__dashjs_factory_name, factory); 
 export default factory;
