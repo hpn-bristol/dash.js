@@ -40,7 +40,7 @@ import Utils from '../../core/Utils.js';
 function CatchupController() {
     const context = this.context;
     const eventBus = EventBus(context).getInstance();
-
+    
     let instance,
         isCatchupSeekInProgress,
         isSafari,
@@ -205,7 +205,7 @@ function CatchupController() {
             const liveCatchupPlaybackRates = mediaPlayerModel.getCatchupPlaybackRates();
             const bufferLevel = playbackController.getBufferLevel();
             const deltaLatency = _getLatencyDrift();
-
+            
             // we reached the maxDrift. Do a seek
             const maxDrift = mediaPlayerModel.getCatchupMaxDrift();
             if (!isNaN(maxDrift) && maxDrift > 0 &&
